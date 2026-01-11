@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+*.log
+coverage/
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Local documentation (not for repo)
+DEVELOPMENT (Complete build guide).md
+IMPLEMENTATION.md
+DEPLOYMENT.md
+GETTING_STARTED.md
+.kiro/
