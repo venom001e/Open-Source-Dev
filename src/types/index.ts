@@ -60,8 +60,11 @@ export interface AgentState {
   currentFix?: CodeFix;
   testResults: TestResult[];
   attempts: number;
+  maxAttempts: number;
   status: string;
   prUrl?: string;
+  sandbox?: any; // E2BSandbox type causes circular dependency if imported here, using any for now or move type.
+  error?: string;
 }
 
 export interface GitHubIssue {
