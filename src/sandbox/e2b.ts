@@ -14,9 +14,16 @@ export class E2BSandbox {
       template = undefined as any;
     }
 
-    this.sandbox = await Sandbox.create(template, {
-      timeoutMs: 900000
-    });
+    try {
+      this.sandbox = await Sandbox.create(template, {
+        timeoutMs: 900000
+      });
+    } catch (e: any) {
+      logger.warn(`Failed to create sandbox with template ${template}: ${e.message}. Falling back to default.`);
+      this.sandbox = await Sandbox.create(undefined as any, {
+        timeoutMs: 900000
+      });
+    }
     logger.info('Sandbox instance created.');
 
     // We strictly use relative path 'repo' to avoid permission issues with /workspace
