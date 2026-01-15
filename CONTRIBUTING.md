@@ -1,6 +1,22 @@
 # Contributing to OSS_dev
 
 Thank you for your interest in contributing to OSS_dev! This document provides guidelines for contributing to the project.
+**NOTES**
+To maintain OSS_dev as a production-grade project, we strictly reject PRs that follow these patterns:
+No "Patch-work" Fixes: Do not submit shallow fixes that address symptoms. If a core logic path is broken, fix the core implementation. We value architectural integrity over quick patches.
+
+No Irrelevant Comments: Avoid adding comments like // this adds two numbers or personal notes. Code should be self-documenting. Only use comments to explain the "Why" of a complex decision, never the "What".
+
+No "Film Script" Commits: Keep commit messages minimal and meaningful.
+❌ Fixed the bug where some things were happening and then I changed this file to make it work better after looking at logs
+✅ fix(engineer): resolve sandbox clone permission error
+
+No Placeholders: Never submit code with // TODO or // FIXME. PRs should be complete, stable, and ready for deployment.
+No any Types: We are a strict TypeScript project. Use the definitions in 
+src/types/index.ts
+. If a type is missing, create it properly.
+No Unnecessary Dependencies: Every added package increases the attack surface and bundle size. If it can be done with 10 lines of vanilla TS, don't add a library.
+##
 
 ## Getting Started
 
