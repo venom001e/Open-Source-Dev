@@ -61,7 +61,6 @@ The project requires three API keys (already configured in `.env`):
 - **Purpose:** Repository access and PR creation
 - **Create at:** https://github.com/settings/tokens
 - **Required scopes:** `repo`, `workflow`
-- **Current token:** `your_github_token_here`
 
 ## 💻 Usage
 
