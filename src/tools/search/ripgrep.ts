@@ -20,7 +20,9 @@ export class RipgrepSearch {
     }
 
     try {
+      logger.info(`Running rg with args: ${args.join(' ')} in ${repoPath}`);
       const { stdout } = await execa('rg', args, { cwd: repoPath });
+      logger.info(`Rg stdout length: ${stdout.length}`);
       return this.parse(stdout);
     } catch (error: any) {
       if (error.exitCode === 1) return [];
@@ -45,7 +47,7 @@ export class RipgrepSearch {
             relevanceScore: 1.0,
           });
         }
-      } catch {}
+      } catch { }
     }
 
     return snippets;
