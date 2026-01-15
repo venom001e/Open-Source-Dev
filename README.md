@@ -236,7 +236,7 @@ MIT
 
 ## 🤝 Contributing
 
-This is a hackathon project for the Gemini 3 Marathon Agent Track. Contributions welcome after the initial implementation!
+ Contributions welcome after the initial implementation!
 
 ---
 
