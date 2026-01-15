@@ -50,12 +50,12 @@ The project requires three API keys (already configured in `.env`):
 ### 1. Gemini API Key
 - **Purpose:** AI-powered code analysis and generation
 - **Get it from:** https://makersuite.google.com/app/apikey
-- **Current key:** `your_gemini_key_here`
+
 
 ### 2. E2B API Key
 - **Purpose:** Isolated sandbox testing
 - **Get it from:** https://e2b.dev/docs
-- **Current key:** `your_e2b_key_here`
+
 
 ### 3. GitHub Personal Access Token
 - **Purpose:** Repository access and PR creation
