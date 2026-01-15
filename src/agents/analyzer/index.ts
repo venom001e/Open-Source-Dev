@@ -21,16 +21,32 @@ export class IssueAnalyzer {
       category: z.enum(['bug', 'feature', 'docs']),
     });
 
-    const result = {
-      problem: "Bug in main logic",
-      expected: "Should work",
-      actual: "Does not work",
-      keywords: ["main", "error"],
-      mentionedFiles: ["backend/main.go"],
-      severity: "medium",
-      category: "bug"
-    };
-    return result as IssueAnalysis;
+    const structuredModel = model.withStructuredOutput(schema as any);
+
+    const prompt = `You are a senior engineer analyzing a bug report.
+
+Issue:
+Title: ${issue.title}
+Body: ${issue.body}
+Labels: ${issue.labels.join(', ')}
+
+Analyze the issue and extract the structured data. Focus on identifying the core problem and any specific files mentioned.`;
+
+    try {
+      const result = await structuredModel.invoke(prompt);
+      return result as IssueAnalysis;
+    } catch (e) {
+      logger.warn('API for issue analysis failed, using fallback...');
+      return {
+        problem: issue.title,
+        expected: "Functionality working correctly",
+        actual: "Bug reported in issue body",
+        keywords: issue.title.split(' ').slice(0, 5),
+        mentionedFiles: [],
+        severity: "medium",
+        category: "bug"
+      };
+    }
   }
 }
 
