@@ -65,6 +65,9 @@ export interface AgentState {
   prUrl?: string;
   sandbox?: any; // E2BSandbox type causes circular dependency if imported here, using any for now or move type.
   error?: string;
+  reviewFeedback?: string;
+  dryRun?: boolean;
+  projectMap?: string;
 }
 
 export interface GitHubIssue {
@@ -90,6 +93,7 @@ export interface WorkflowOptions {
   dryRun: boolean;
   maxAttempts: number;
   verbose: boolean;
+  useLocal: boolean;
 }
 
 export interface WorkflowResult {
