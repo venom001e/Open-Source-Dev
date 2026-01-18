@@ -16,7 +16,7 @@ export class RipgrepSearch {
     ];
 
     if (options.fileType) {
-      args.push('--type', options.fileType);
+      args.push('-g', `*.${options.fileType}`);
     }
 
     try {
