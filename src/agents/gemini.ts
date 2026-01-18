@@ -10,6 +10,7 @@ export class GeminiService {
       apiKey: process.env.GEMINI_API_KEY,
       model: modelName,
       temperature,
+      maxRetries: 2,
     });
   }
 }
