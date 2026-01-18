@@ -55,7 +55,7 @@ For the runtime, use 'base' if it's a standard linux environment or a specific o
             }
             if (treeStr.includes('package.json')) {
                 return {
-                    language: "TypeScript/JavaScript",
+                    language: "ts",
                     runtime: "base",
                     packageManager: "npm",
                     installCommand: "npm install",
