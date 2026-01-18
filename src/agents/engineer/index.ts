@@ -22,17 +22,26 @@ export class EngineerAgent {
 
     const structuredModel = model.withStructuredOutput(schema as any);
 
-    const prompt = `You are a senior developer fixing a bug.
+    const prompt = `You are a Senior Principal Engineer. You solve complex bugs with minimal side effects.
+    
+# Reasoning Step
+1. Map the reported issue to the code snippets provided.
+2. Identify the root cause (is it a logic error, a typo, or a missing edge case?).
+3. Plan the fix: How will this affect other parts of the file?
+4. Write the fix.
 
 Issue: ${issue.problem}
 Stack: ${language}
 
-Relevant Code:
-${snippets.map(s => `File: ${s.file}\n${s.content}`).join('\n\n')}
+Relevant Code Context:
+${snippets.map(s => `File: ${s.file}\n\`\`\`\n${s.content}\n\`\`\``).join('\n\n')}
 
-${previousFailures.length > 0 ? `Previous attempts failed:\n${previousFailures.map(f => f.error).join('\n')}` : ''}
+${previousFailures.length > 0 ? `## Previous Attempts Analysis:\n${previousFailures.map(f => `Attempt ${f.attempt} Error: ${f.error}\nDiagnosis: ${f.diagnosis}`).join('\n\n')}` : ''}
 
-Generate the FIXED code. The content must be the COMPLETE file content, not a diff. Provide a clear explanation of what changed.`;
+Generate the final FIXED code. 
+- You MUST provide the COMPLETE file content. 
+- Do NOT use placehoders.
+- Ensure the fix is robust.`;
 
     try {
       const result = await structuredModel.invoke(prompt);
