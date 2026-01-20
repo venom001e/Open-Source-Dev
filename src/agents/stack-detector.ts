@@ -18,23 +18,41 @@ export class StackDetectorAgent {
     async detectStack(repoPath: string): Promise<RepoFingerprint> {
         const fileTree = await this.generateFileTree(repoPath);
 
+        // Read contents of key files for better auditing
+        const configFiles = ['package.json', 'go.mod', 'requirements.txt', 'pyproject.toml', 'manage.py'];
+        const configContents: Record<string, string> = {};
+
+        for (const file of configFiles) {
+            const fullPath = path.join(repoPath, file);
+            if (fs.existsSync(fullPath)) {
+                try {
+                    configContents[file] = fs.readFileSync(fullPath, 'utf8').substring(0, 1000); // First 1000 chars
+                } catch { }
+            }
+        }
+
         const schema = z.object({
             language: z.string().describe("The primary programming language"),
             runtime: z.string().describe("The runtime environment (e.g., node, python, go, base)"),
             packageManager: z.string().describe("The package manager used"),
             installCommand: z.string().describe("The command to install dependencies"),
-            testCommand: z.string().describe("The command to run tests")
+            testCommand: z.string().describe("The command to run tests"),
+            dependencies: z.array(z.string()).describe("Key dependencies found in config files (e.g. react, lodash, express)")
         });
 
         const structuredModel = this.model.withStructuredOutput(schema as any);
 
-        const prompt = `You are an expert system administrator. Analyze the following file tree and identify the technology stack.
+        const prompt = `You are a Senior Principal Engineer performing an environment audit.
         
 File Tree:
 ${fileTree.join('\n')}
 
+Config File Previews:
+${Object.entries(configContents).map(([f, c]) => `--- ${f} ---\n${c}`).join('\n\n')}
+
 Identify the language, runtime, package manager, and provide the standard commands to install dependencies and run tests.
-For the runtime, use 'base' if it's a standard linux environment or a specific one like 'node', 'python', etc.`;
+For the runtime, use 'base' if it's a standard linux environment or a specific one like 'node', 'python', etc.
+Audit the dependencies carefully to ensure the sandbox setup will be successful.`;
 
         try {
             const result = await structuredModel.invoke(prompt);

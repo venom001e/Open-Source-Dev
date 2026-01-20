@@ -23,14 +23,21 @@ export class ScoutAgent {
 
     const prompt = `You are a Codebase Scout. Your mission is to find the EXACT files causing the issue.
     
+# Navigation Strategy
+1. Use the "Project Structure" to see where related files might live.
+2. Use the "Mentioned Files" from the issue context if they exist.
+3. If the issue describes a UI bug, look for Frontend components.
+4. If it describes an API failure, look for Routes/Controllers/Models.
+
 Project Structure:
 ${projectMap || 'Unknown'}
 
-Issue Summary: ${issue.problem}
+Issue: ${issue.problem}
 Keywords: ${issue.keywords.join(', ')}
+Mentioned Files: ${issue.mentionedFiles.join(', ') || 'None'}
 Language: ${language}
 
-Based on the file tree above, identify 3-5 high-probability files and generate regex patterns to find the specific buggy logic.`;
+Based on this, generate 3-5 surgical regex patterns. Be precise. Avoid searching for generic terms if a file path is obvious.`;
 
     try {
       const result = await structuredModel.invoke(prompt);

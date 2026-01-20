@@ -1,4 +1,5 @@
 import { StateGraph, END } from '@langchain/langgraph';
+import chalk from 'chalk';
 import { IssueAnalysis, RepoFingerprint, CodeSnippet, CodeFix, TestResult, WorkflowResult, AgentState, SearchQuery } from '../types';
 import { StackDetectorAgent } from '../agents/stack-detector';
 import { IssueAnalyzer } from '../agents/analyzer';
@@ -149,7 +150,38 @@ async function verifyFixNode(state: AgentState): Promise<Partial<AgentState>> {
 
     await state.sandbox.writeFile(state.currentFix.file, state.currentFix.content);
 
+    // Run automated tests first
     const result = await state.sandbox.runTests(state.fingerprint.testCommand);
+
+    if (state.issueAnalysis?.isFrontend) {
+        logger.info(chalk.magenta(' 🎨 Frontend Issue Detected. Visual verification recommended.'));
+        if (result.passed) {
+            logger.success(' Automated tests passed.');
+        } else {
+            logger.warn(' Automated tests failed or not found.');
+        }
+
+        // Logic to ask user for local verification
+        const readline = await import('readline');
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        const answer = await new Promise(resolve => {
+            rl.question(chalk.cyan(' Please verify the fix on your localhost. Is it working as expected? (y/n): '), (ans) => {
+                rl.close();
+                resolve(ans.toLowerCase());
+            });
+        });
+
+        if (answer === 'y') {
+            return { status: 'success', testResults: [result] };
+        } else {
+            logger.warn(' User rejected frontend verification.');
+            return { status: 'running', testResults: [result], error: 'User rejected visual verification' };
+        }
+    }
 
     if (result.passed) {
         logger.success(' Tests Passed');

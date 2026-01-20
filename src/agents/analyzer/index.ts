@@ -19,24 +19,31 @@ export class IssueAnalyzer {
       mentionedFiles: z.array(z.string()).describe("Files explicitly mentioned in the issue"),
       severity: z.enum(['low', 'medium', 'high']),
       category: z.enum(['bug', 'feature', 'docs']),
+      isFrontend: z.boolean().describe("Whether this issue primarily involves frontend code (CSS, React, UI)"),
     });
 
     const structuredModel = model.withStructuredOutput(schema as any);
 
-    const prompt = `You are a senior engineer analyzing a bug report.
-
+    const prompt = `You are a Senior Principal Engineer. Analyze this bug report deeply.
+    
 Issue:
 Title: ${issue.title}
 Body: ${issue.body}
 Labels: ${issue.labels.join(', ')}
 
-Analyze the issue and extract the structured data. Focus on identifying the core problem and any specific files mentioned.`;
+1. Identify the core logic failure.
+2. Determine if this is a Frontend (UI/UX/CSS) issue.
+3. Extract relevant files and keywords for searching.`;
 
     try {
-      const result = await structuredModel.invoke(prompt);
-      return result as IssueAnalysis;
+      const result = await structuredModel.invoke(prompt) as any;
+      return {
+        ...result,
+        labels: issue.labels
+      };
     } catch (e) {
       logger.warn('API for issue analysis failed, using fallback...');
+      const isFrontend = issue.labels.some(l => l.toLowerCase().includes('frontend') || l.toLowerCase().includes('ui') || l.toLowerCase().includes('css'));
       return {
         problem: issue.title,
         expected: "Functionality working correctly",
@@ -44,7 +51,9 @@ Analyze the issue and extract the structured data. Focus on identifying the core
         keywords: issue.title.split(' ').slice(0, 5),
         mentionedFiles: [],
         severity: "medium",
-        category: "bug"
+        category: "bug",
+        labels: issue.labels,
+        isFrontend
       };
     }
   }

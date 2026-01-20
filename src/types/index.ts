@@ -6,6 +6,8 @@ export interface IssueAnalysis {
   mentionedFiles: string[];
   severity: 'low' | 'medium' | 'high';
   category: 'bug' | 'feature' | 'docs';
+  labels: string[];
+  isFrontend: boolean;
 }
 
 export interface RepoFingerprint {
@@ -14,6 +16,7 @@ export interface RepoFingerprint {
   packageManager: string;
   installCommand: string;
   testCommand: string;
+  dependencies?: string[];
 }
 
 export interface CodeSnippet {
