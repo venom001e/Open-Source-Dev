@@ -54,9 +54,9 @@ We move beyond "one bot, one issue."
 
 | Phase | Milestone | Outcome |
 | :--- | :--- | :--- |
-| **Current** | Multi-Stack Orchestration | Agent works on Go, Python, Node in sandboxes. |
-| **Next** | Local-First & Link | `npm link` and `--local` for instant local usage. |
-| **Expansion** | Swarm Mode | Separate "Tester" and "Engineer" agents in one graph. |
+| **Current** | Multi-Stack Orchestration | [DONE] Agent works on Node, Python, etc. |
+| **Next** | Local-First & Link | [DONE] `--local` for instant local usage. |
+| **Expansion** | Swarm Mode | [DONE] Reviewer and Engineer agents collaboration. |
 | **Zenith** | Full Self-Generation | Agent manages the roadmap and implements 80% of features. |
 
 ---
