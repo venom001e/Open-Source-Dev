@@ -1,15 +1,13 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
+export const PRICES = {
+  'gemini-2.5-flash': { input: 0.05 / 1_000_000, output: 0.2 / 1_000_000 },
+  'gemini-2.5-pro': { input: 0.1 / 1_000_000, output: 0.4 / 1_000_000 },
+  'gemini-2.0-flash': { input: 0.075 / 1_000_000, output: 0.3 / 1_000_000 },
+  'gemini-2.0-pro': { input: 0.12 / 1_000_000, output: 0.48 / 1_000_000 },
+};
+
 export class GeminiService {
-  private static instance: GeminiService;
-
-  private constructor() { }
-
-  private static PRICES = {
-    'gemini-1.5-pro': { input: 3.5 / 1_000_000, output: 10.5 / 1_000_000 },
-    'gemini-2.0-flash-exp': { input: 0.1 / 1_000_000, output: 0.4 / 1_000_000 },
-  };
-
   private static usage = {
     promptTokens: 0,
     completionTokens: 0,
@@ -17,29 +15,63 @@ export class GeminiService {
     cost: 0
   };
 
-  static getModel(modelName: 'gemini-2.0-flash-exp' | 'gemini-1.5-pro' = 'gemini-2.0-flash-exp', temperature = 0) {
-    return new ChatGoogleGenerativeAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      model: modelName,
+  constructor(private apiKey: string) { }
+
+  /**
+   * Returns a LangChain model instance.
+   * Default model is gemini-2.0-flash as it's the stable choice for 2026.
+   */
+  getModel(modelName?: string, temperature = 0) {
+    const normalizedModelName = modelName || 'gemini-2.0-flash';
+
+    const config = {
+      apiKey: this.apiKey,
+      model: normalizedModelName,
+      apiVersion: 'v1',
       temperature,
       maxRetries: 2,
-    });
+    };
+
+    return new ChatGoogleGenerativeAI(config);
+  }
+
+  /**
+   * Helper to invoke the model and enforce JSON output via prompt reinforcement.
+   */
+  async invokeJSON<T>(model: ChatGoogleGenerativeAI, prompt: string, schemaDescription: string): Promise<T> {
+    const jsonPrompt = `${prompt}\n\nIMPORTANT: You must return ONLY a valid JSON object. No markdown, no triple backticks, no explanations. 
+    The JSON must follow this structure:\n${schemaDescription}`;
+
+    const response = await model.invoke(jsonPrompt);
+    const content = typeof response.content === 'string' ? response.content : JSON.stringify(response.content);
+
+    try {
+      const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleaned) as T;
+    } catch (e) {
+      console.error("Failed to parse AI JSON response. Content:", content);
+      throw new Error("AI returned invalid JSON format.");
+    }
   }
 
   static trackUsage(modelName: string, promptTokens: number, completionTokens: number) {
     this.usage.promptTokens += promptTokens;
     this.usage.completionTokens += completionTokens;
     this.usage.totalTokens += promptTokens + completionTokens;
-    this.usage.cost += this.calculateCost(modelName, promptTokens, completionTokens);
+    this.usage.cost += this.calculateStaticCost(modelName, promptTokens, completionTokens);
   }
 
   static getSessionUsage() {
     return this.usage;
   }
 
-  private static calculateCost(modelName: string, promptTokens: number, completionTokens: number): number {
-    const prices = (this.PRICES as any)[modelName] || this.PRICES['gemini-2.0-flash-exp'];
+  calculateCost(modelName: string, promptTokens: number, completionTokens: number): number {
+    return GeminiService.calculateStaticCost(modelName, promptTokens, completionTokens);
+  }
+
+  private static calculateStaticCost(modelName: string, promptTokens: number, completionTokens: number): number {
+    const normalizedModelName = modelName.replace('models/', '').replace('-latest', '');
+    const prices = (PRICES as any)[normalizedModelName] || PRICES['gemini-2.0-flash'];
     return (promptTokens * prices.input) + (completionTokens * prices.output);
   }
 }
-

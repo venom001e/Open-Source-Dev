@@ -9,53 +9,76 @@ export interface ReviewResult {
     category: 'logic' | 'syntax' | 'style' | 'security' | 'ok';
 }
 
+/**
+ * Conducts a technical peer review of generated fixes to ensure quality and safety.
+ */
 export class ReviewerAgent {
+    private service: GeminiService;
+
+    constructor(apiKey: string = process.env.GEMINI_API_KEY!) {
+        this.service = new GeminiService(apiKey);
+    }
+
+    /**
+     * Reviews a proposed code fix against the original problem and context.
+     */
     async review(
         issue: IssueAnalysis,
         fix: CodeFix,
         snippets: CodeSnippet[],
         language: string
     ): Promise<ReviewResult> {
-        const model = GeminiService.getModel('gemini-2.0-flash-exp');
+        logger.info(`Reviewing fix for ${fix.file}...`);
+        const model = this.service.getModel();
 
         const schema = z.object({
-            approved: z.boolean().describe("Whether the fix is logically sound and safe"),
-            feedback: z.string().describe("Constructive feedback for the engineer"),
-            category: z.enum(['logic', 'syntax', 'style', 'security', 'ok']).describe("The main concern if any")
+            approved: z.boolean().describe("True if the fix is technically sound, secure, and complete"),
+            feedback: z.string().describe("Detailed architectural and logical feedback"),
+            category: z.enum(['logic', 'syntax', 'style', 'security', 'ok']).describe("Primary classification of any identified issues")
         });
 
         const structuredModel = model.withStructuredOutput(schema as any);
 
-        const originalCode = snippets.find(s => s.file === fix.file)?.content || "File not found in context";
+        const originalCode = snippets.find(s => s.file === fix.file)?.content ||
+            "Target file content not available in current context.";
 
-        const prompt = `You are a Senior Peer Reviewer. Your job is to catch shallow fixes or logic errors.
+        const prompt = `System Requirement: Conduct a rigorous Peer Review of the following code modification.
 
+TECHNICAL CONTEXT:
 Issue: ${issue.problem}
 Stack: ${language}
+File: ${fix.file}
 
-Original Code for ${fix.file}:
+ORIGINAL SOURCE:
+\`\`\`
 ${originalCode}
+\`\`\`
 
-Generated Fix:
+PROPOSED MODIFICATION:
+\`\`\`
 ${fix.content}
+\`\`\`
 
-Review the fix. Reject it if:
-1. It is a "shallow" fix (e.g. just ignoring an error).
-2. It introduces a new bug.
-3. It deviates too much from the project style.
-4. It only partially addresses the issue.
+REVIEW CRITERIA:
+1. LOGICAL INTEGRITY: Does the fix resolve the identified root cause?
+2. REGRESSION RISK: Does the change introduce secondary failures or side effects?
+3. SECURITY COMPLIANCE: Are there any vulnerability patterns (e.g. unsanitized input)?
+4. ARCHITECTURAL ALIGNMENT: Does the fix adhere to established project patterns?
+5. COMPLETENESS: Is the issue fully addressed or is this a superficial patch?
 
-If approved, set approved=true. Otherwise set false and provide feedback.`;
+VERDICT GUIDELINES:
+- Approve ONLY if all criteria are met.
+- Provide high-density technical feedback for rejections.`;
 
         try {
             const result = await structuredModel.invoke(prompt) as any as ReviewResult;
             return result;
-        } catch (e: any) {
-            logger.warn(`Reviewer API failed: ${e.message}. Defaulting to approved for continuity.`);
+        } catch (error: any) {
+            logger.error(`Reviewer API failure: ${error.message}. Defaulting to manual verification requirement.`);
             return {
-                approved: true,
-                feedback: "API failure, but bypassing for progress.",
-                category: 'ok'
+                approved: false,
+                feedback: "Automated review system unavailable. Manual audit required.",
+                category: 'logic'
             };
         }
     }

@@ -4,11 +4,15 @@ import { logger } from '../../utils/logger';
 import { z } from 'zod';
 
 export class ScoutAgent {
-  constructor() { }
+  private service: GeminiService;
+
+  constructor(apiKey: string = process.env.GEMINI_API_KEY!) {
+    this.service = new GeminiService(apiKey);
+  }
 
   async generateSearchQueries(issue: IssueAnalysis, language: string, projectMap?: string): Promise<SearchQuery[]> {
     logger.info('Generating search queries with LangChain...');
-    const model = GeminiService.getModel('gemini-2.0-flash-exp');
+    const model = this.service.getModel();
 
     const schema = z.object({
       queries: z.array(z.object({
@@ -40,7 +44,7 @@ Language: ${language}
 Based on this, generate 3-5 surgical regex patterns. Be precise. Avoid searching for generic terms if a file path is obvious.`;
 
     try {
-      const result = await structuredModel.invoke(prompt);
+      const result = await structuredModel.invoke(prompt) as any;
       return result.queries as SearchQuery[];
     } catch (e) {
       logger.warn('API for search query generation failed, using fallback...');

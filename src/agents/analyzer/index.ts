@@ -3,59 +3,81 @@ import { IssueAnalysis, GitHubIssue } from '../../types';
 import { logger } from '../../utils/logger';
 import { z } from 'zod';
 
+/**
+ * Analyzes GitHub issues to extract semantic meaning and technical context.
+ */
 export class IssueAnalyzer {
-  constructor() { }
+  private service: GeminiService;
 
+  constructor(apiKey: string = process.env.GEMINI_API_KEY!) {
+    this.service = new GeminiService(apiKey);
+  }
+
+  /**
+   * Performs a deep analysis of a GitHub issue using specialized AI models.
+   */
   async analyze(issue: GitHubIssue): Promise<IssueAnalysis> {
-    logger.info('Analyzing issue with LangChain...');
+    logger.info(`Analyzing issue: ${issue.title}`);
 
-    const model = GeminiService.getModel('gemini-2.0-flash-exp');
+    const model = this.service.getModel();
 
-    const schema = z.object({
-      problem: z.string().describe("A concise summary of what is broken"),
-      expected: z.string().describe("Expected behavior description"),
-      actual: z.string().describe("Actual behavior description"),
-      keywords: z.array(z.string()).describe("Relevant search keywords"),
-      mentionedFiles: z.array(z.string()).describe("Files explicitly mentioned in the issue"),
-      severity: z.enum(['low', 'medium', 'high']),
-      category: z.enum(['bug', 'feature', 'docs']),
-      isFrontend: z.boolean().describe("Whether this issue primarily involves frontend code (CSS, React, UI)"),
-    });
+    const schemaDescription = `
+    {
+      "problem": "technical summary",
+      "expected": "expected behavior",
+      "actual": "observed behavior",
+      "keywords": ["key", "words"],
+      "mentionedFiles": ["file.ts"],
+      "severity": "low|medium|high",
+      "category": "bug|feature|docs",
+      "isFrontend": boolean
+    }`;
 
-    const structuredModel = model.withStructuredOutput(schema as any);
+    const prompt = `System Requirement: Perform a technical analysis of the following GitHub issue report.
 
-    const prompt = `You are a Senior Principal Engineer. Analyze this bug report deeply.
-    
-Issue:
+REPORT METADATA:
 Title: ${issue.title}
-Body: ${issue.body}
 Labels: ${issue.labels.join(', ')}
 
-1. Identify the core logic failure.
-2. Determine if this is a Frontend (UI/UX/CSS) issue.
-3. Extract relevant files and keywords for searching.`;
+REPORT CONTENT:
+${issue.body}
+
+ANALYSIS REQUIREMENTS:
+1. Identify the core architectural failure or logic gap.
+2. Filter for Frontend-specific requirements (CSS, UI Components, Client-side logic).
+3. Extract specific file paths or unique identifiers mentioned in the text.
+4. Generate high-signal search keywords for source code exploration.`;
 
     try {
-      const result = await structuredModel.invoke(prompt) as any;
+      const result = await this.service.invokeJSON<any>(model, prompt, schemaDescription);
       return {
         ...result,
         labels: issue.labels
       };
-    } catch (e) {
-      logger.warn('API for issue analysis failed, using fallback...');
-      const isFrontend = issue.labels.some(l => l.toLowerCase().includes('frontend') || l.toLowerCase().includes('ui') || l.toLowerCase().includes('css'));
-      return {
-        problem: issue.title,
-        expected: "Functionality working correctly",
-        actual: "Bug reported in issue body",
-        keywords: issue.title.split(' ').slice(0, 5),
-        mentionedFiles: [],
-        severity: "medium",
-        category: "bug",
-        labels: issue.labels,
-        isFrontend
-      };
+    } catch (error: any) {
+      logger.error(`AI analysis failed: ${error.message}. Returning heuristic baseline.`);
+      return this.generateHeuristicBaseline(issue);
     }
   }
-}
 
+  /**
+   * Generates a basic analysis when AI processing fails.
+   */
+  private generateHeuristicBaseline(issue: GitHubIssue): IssueAnalysis {
+    const isFrontend = issue.labels.some(l =>
+      /frontend|ui|css|react|view/i.test(l)
+    );
+
+    return {
+      problem: issue.title,
+      expected: "Standard operational compliance",
+      actual: "Reported anomaly in issue body",
+      keywords: issue.title.split(' ').filter(k => k.length > 3).slice(0, 5),
+      mentionedFiles: [],
+      severity: "medium",
+      category: "bug",
+      labels: issue.labels,
+      isFrontend
+    };
+  }
+}

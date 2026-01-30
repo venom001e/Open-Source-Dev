@@ -1,7 +1,7 @@
 {
   "name": "oss-dev",
   "version": "1.0.0",
-  "description": "Autonomous OSS contributor powered by Gemini 3",
+  "description": "Autonomous OSS contributor powered by Gemini 1.5",
   "main": "dist/cli/index.js",
   "bin": {
     "oss-dev": "./dist/cli/index.js"
