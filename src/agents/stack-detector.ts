@@ -13,7 +13,7 @@ export class StackDetectorAgent {
 
     constructor(apiKey: string) {
         this.service = new GeminiService(apiKey);
-        this.model = this.service.getModel(); // Uses default gemini-2.0-flash
+        this.model = this.service.getModel(); // Uses default gemini-2.5-flash
     }
 
     /**

@@ -80,13 +80,61 @@ async function searchCodeNode(state: AgentState): Promise<Partial<AgentState>> {
     // Deep Search Fallback: If no snippets found, try a broader search
     if (snippets.length === 0) {
         logger.warn(' No snippets found. Triggering Deep Search...');
-        const broadQueries: SearchQuery[] = (state.issueAnalysis?.keywords || []).map(k => ({
-            pattern: k,
-            fileType: state.fingerprint?.language || 'ts',
-            contextLines: 10,
-            reason: "Broad keyword search"
-        }));
+        const broadQueries: SearchQuery[] = [];
+        
+        // Try mentioned files first
+        if (state.issueAnalysis?.mentionedFiles && state.issueAnalysis.mentionedFiles.length > 0) {
+            for (const file of state.issueAnalysis.mentionedFiles) {
+                broadQueries.push({
+                    pattern: file.replace(/\.[^/.]+$/, ''),
+                    fileType: state.fingerprint?.language || 'ts',
+                    contextLines: 15,
+                    reason: `Deep search for mentioned file: ${file}`
+                });
+            }
+        }
+        
+        // Then try keywords with word boundaries
+        if (state.issueAnalysis?.keywords && state.issueAnalysis.keywords.length > 0) {
+            for (const k of state.issueAnalysis.keywords.slice(0, 5)) {
+                const escapedKeyword = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                broadQueries.push({
+                    pattern: `\\b${escapedKeyword}\\b`,
+                    fileType: state.fingerprint?.language || 'ts',
+                    contextLines: 15,
+                    reason: `Deep keyword search: ${k}`
+                });
+            }
+        }
+        
+        // If still no queries, search for common patterns
+        if (broadQueries.length === 0) {
+            broadQueries.push({
+                pattern: 'function|class|export|const|let|var',
+                fileType: state.fingerprint?.language || 'ts',
+                contextLines: 10,
+                reason: "Generic code structure search"
+            });
+        }
+        
         snippets = await runSearch(broadQueries);
+    }
+
+    // Final fallback: if still no results, search for any files of the right type
+    if (snippets.length === 0) {
+        logger.warn(' Deep search also returned no results. Using final fallback...');
+        const fileExt = state.fingerprint?.language === 'typescript' ? 'ts' : 
+                       state.fingerprint?.language === 'javascript' ? 'js' : 
+                       state.fingerprint?.language || 'ts';
+        
+        const fallbackQueries: SearchQuery[] = [{
+            pattern: '^',  // Match start of any line
+            fileType: fileExt,
+            contextLines: 5,
+            reason: "Final fallback: any code file"
+        }];
+        
+        snippets = await runSearch(fallbackQueries);
     }
 
     logger.info(`Found ${snippets.length} snippets`);

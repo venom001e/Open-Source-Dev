@@ -44,10 +44,15 @@ export class RipgrepSearch {
     try {
       logger.debug(`Searching for "${pattern}" in ${repoPath} using ${binary}`);
       const { stdout } = await execa(binary, args, { cwd: repoPath });
-      return this.parseJsonOutput(stdout);
+      const results = this.parseJsonOutput(stdout);
+      logger.debug(`Search for "${pattern}" returned ${results.length} snippets`);
+      return results;
     } catch (error: any) {
       // Exit code 1 means no matches found
-      if (error.exit_code === 1 || error.exitCode === 1) return [];
+      if (error.exit_code === 1 || error.exitCode === 1) {
+        logger.debug(`No matches found for pattern: "${pattern}"`);
+        return [];
+      }
       logger.error(`Ripgrep execution failed: ${error.message}`);
       return [];
     }
@@ -68,12 +73,12 @@ export class RipgrepSearch {
       try {
         const msg = JSON.parse(line);
         if (msg.type === 'match') {
-          const path = msg.data.path.text;
+          const path = msg.data.path;
           if (!fileMatches[path]) fileMatches[path] = [];
 
           fileMatches[path].push({
             line: msg.data.line_number,
-            content: msg.data.lines.text,
+            content: msg.data.lines,
             // Capture submatches if needed
           });
         }

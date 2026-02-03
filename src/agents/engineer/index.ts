@@ -62,16 +62,16 @@ ENGINEERING REQUIREMENTS:
         content: result.content,
       };
     } catch (error: any) {
-      logger.warn(`Primary model (gemini-2.0-flash) failed: ${error.message}. Falling back to gemini-2.0-pro...`);
+      logger.warn(`Primary model (gemini-2.5-flash) failed: ${error.message}. Falling back to gemini-2.5-pro...`);
       try {
-        const fallbackModel = this.service.getModel('gemini-2.0-pro').withStructuredOutput(schema as any);
+        const fallbackModel = this.service.getModel('gemini-2.5-pro').withStructuredOutput(schema as any);
         const result = await fallbackModel.invoke(prompt) as any;
         return {
           file: result.file,
           content: result.content,
         };
       } catch (fallbackError: any) {
-        logger.error(`Fallback model (gemini-2.0-pro) also failed: ${fallbackError.message}.`);
+        logger.error(`Fallback model (gemini-2.5-pro) also failed: ${fallbackError.message}.`);
         throw new Error(`Failed to generate code fix autonomously: ${fallbackError.message}`);
       }
     }
