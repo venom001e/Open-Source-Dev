@@ -45,7 +45,8 @@ export class StackDetectorAgent {
           "packageManager": "string",
           "installCommand": "string",
           "testCommand": "string",
-          "dependencies": ["string"]
+          "dependencies": ["string"],
+          "projectRoot": "string"
         }`;
 
         const prompt = `You are a Senior Systems Architect auditing a repository to prepare an automated development environment.
@@ -61,8 +62,9 @@ ${Object.entries(configContents).map(([f, c]) => `--- ${f} ---\n${c}`).join('\n\
 INSTRUCTIONS:
 1. Identify the primary programming language.
 2. Determine the best runtime environment for an Ubuntu-based sandbox.
-3. Provide the exact commands needed to install dependencies and run tests.
-4. List critical dependencies that might require system-level tools.
+3. Identify the "projectRoot" - this is the directory containing the source code and dependency manifests (e.g., package.json, go.mod). If it's a monorepo and the code is in a sub-directory (like 'backend/'), provide that path. If it's in the root, leave it empty or use "".
+4. Provide the exact commands needed to install dependencies and run tests. These commands will be executed starting from the "projectRoot".
+5. List critical dependencies that might require system-level tools.
 
 Ensure the commands provided are robust and assume a fresh environment.`;
 

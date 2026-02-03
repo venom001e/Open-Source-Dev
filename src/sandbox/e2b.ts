@@ -59,11 +59,14 @@ export class E2BSandbox {
     await this.ensureRuntimeDependencies(fingerprint);
 
     // Install project dependencies
-    const installCmd = `cd ${absRepoPath} && ${fingerprint.installCommand}`;
+    const workingDir = fingerprint.projectRoot ? path.join(absRepoPath, fingerprint.projectRoot).replace(/\\/g, '/') : absRepoPath;
+    const installCmd = `cd ${workingDir} && ${fingerprint.installCommand}`;
+    
+    logger.info(`Installing dependencies in ${workingDir}...`);
     try {
       const install = await this.sandbox.commands.run(installCmd);
       if (install.exitCode !== 0) {
-        logger.warn(`Warning: Installation command failed: ${install.stderr}`);
+        logger.warn(`Warning: Installation command failed: ${install.stderr || install.stdout}`);
       }
     } catch (e: any) {
       logger.error(`Error during dependency installation: ${e.message}`);
@@ -80,10 +83,13 @@ export class E2BSandbox {
 
     if (fingerprint.language.toLowerCase() === 'go') {
       try {
-        await this.sandbox.commands.run('go version');
+        const check = await this.sandbox.commands.run('go version');
+        if (check.exitCode !== 0) throw new Error('not installed');
       } catch {
         logger.info('Installing Go runtime...');
-        await this.sandbox.commands.run('sudo apt-get update && sudo apt-get install -y golang');
+        // Use a more reliable way to install Go on Ubuntu
+        const setupCmd = 'sudo apt-get update && sudo apt-get install -y golang-go || (curl -OL https://go.dev/dl/go1.22.0.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz && export PATH=$PATH:/usr/local/go/bin)';
+        await this.sandbox.commands.run(setupCmd);
       }
     }
     // Add other language-specific checks as needed

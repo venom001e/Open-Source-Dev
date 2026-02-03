@@ -17,6 +17,7 @@ export interface RepoFingerprint {
   installCommand: string;
   testCommand: string;
   dependencies?: string[];
+  projectRoot?: string;
 }
 
 export interface CodeSnippet {
